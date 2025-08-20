@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Page Performance Logging</title>
+</head>
+<body>
+
+  <h1>Page Performance Logging</h1>
+  <p>Open your browser's developer tools and navigate to the "Network" tab to see the HTTP request sent with the page timing metrics.</p>
+
+  <script>
+    /**
+     * @fileoverview This script captures key document loading and rendering metrics
+     * and sends them to a server via a single GET request.
+     */
+
+    // Define the base URL for the logging endpoint.
+    const LOG_URL = 'http://127.0.0.1:8080/tiny.png';
+
+    // We will store all performance metrics in this object.
+    const performanceData = {};
+    const navigationTiming = performance.getEntriesByType('navigation')[0];
+    const startTime = navigationTiming ? navigationTiming.startTime : 0;
+    let reportSent = false; // Flag to ensure the report is only sent once.
+    
+    /**
+     * Sends the complete performance report as a single GET request.
+     * This function is called once all expected timing data has been collected.
+     */
+    function sendPerformanceReport() {
+      // Check if all essential data points have been collected AND the report has not been sent yet.
+      // This single check ensures that we have all the data we need before sending.
+      if (performanceData.DOMContentLoaded && performanceData.load && performanceData.FCP && performanceData.LCP && !reportSent) {
+        const params = {
+          type: 'performance_report',
+          dom_content_loaded_time: performanceData.DOMContentLoaded,
+          load_time: performanceData.load,
+          fcp_time: performanceData.FCP,
+          lcp_time: performanceData.LCP
+        };
+
+        const queryString = new URLSearchParams(params).toString();
+        const finalUrl = `${LOG_URL}?${queryString}`;
+
+        console.log('Sending final performance report to URL:', finalUrl);
+
+        // Create a new Image object to trigger the GET request.
+        const logImg = new Image();
+        logImg.src = finalUrl;
+        
+        // Set the flag to true to prevent future calls.
+        reportSent = true;
+      }
+    }
+    
+    /**
+     * Logs the timing of a specific document event.
+     * @param {string} eventName The name of the event being logged.
+     */
+    function logEventTiming(eventName) {
+      const elapsedTime = Math.round(performance.now() - startTime);
+      performanceData[eventName] = elapsedTime;
+
+      // Check if we can send the full report.
+      sendPerformanceReport();
+    }
+    
+    // Use a PerformanceObserver to capture First Contentful Paint (FCP) and
+    // Largest Contentful Paint (LCP), which are crucial for user experience metrics.
+    const observer = new PerformanceObserver((list) => {
+      // Process all entries from the observer.
+      for (const entry of list.getEntries()) {
+        const elapsedTime = Math.round(entry.startTime);
+        
+        switch (entry.name) {
+          case 'first-contentful-paint':
+            performanceData.FCP = elapsedTime;
+            console.log('FCP Captured:', elapsedTime);
+            break;
+          case 'largest-contentful-paint':
+            performanceData.LCP = elapsedTime;
+            console.log('LCP Captured:', elapsedTime);
+            // After capturing LCP, we can stop observing as it's the last metric we need.
+            observer.disconnect();
+            break;
+        }
+      }
+      
+      // Call the function to send the report after processing all new entries.
+      sendPerformanceReport();
+    });
+
+    // We observe 'paint' for FCP and 'largest-contentful-paint' for LCP.
+    observer.observe({ type: 'paint', buffered: true });
+    observer.observe({ type: 'largest-contentful-paint', buffered: true });
+
+
+    // Add event listeners for the 'DOMContentLoaded' and 'load' events.
+    window.addEventListener('DOMContentLoaded', () => {
+      logEventTiming('DOMContentLoaded');
+    });
+
+    window.addEventListener('load', () => {
+      logEventTiming('load');
+      // No need for a setTimeout here anymore. The PerformanceObserver will handle the timing.
+    });
+    
+  </script>
+
+</body>
+</html>

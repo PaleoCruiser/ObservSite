@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Window Onerror Example</title>
+</head>
+<body>
+
+  <script>
+    // This script executes as soon as the parser reaches it.
+    // The window object is available, so we can attach a handler.
+    window.onerror = function(message, source, lineno, colno, error) {
+      console.log('Error caught by onerror:');
+      console.log('Message:', message);
+      console.log('Source:', source);
+      console.log('Line number:', lineno);
+      console.log('Column number:', colno);
+      console.log('Error object:', error);
+
+      // Return true to prevent the default browser error message from appearing.
+      return true;
+    };
+  </script>
+
+  <p>This is some content.</p>
+
+  <script>
+    // This script will throw an error, which will be caught by the handler above.
+    throw new Error("This is an intentional error!");
+  </script>
+
+</body>
+</html>

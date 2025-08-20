@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Error and Event Logging Example</title>
+</head>
+<body>
+
+  <h1>Client-Side Error and Event Logging</h1>
+  <p>Open your browser's developer tools and navigate to the "Network" tab to see the HTTP requests sent when an error occurs or a document event fires.</p>
+
+  <script>
+    /**
+     * @fileoverview This script sets up global handlers to capture JavaScript errors and
+     * log key document loading event timings. The collected data is sent to a server
+     * via a GET request for a 1x1 pixel image.
+     */
+
+    // Define the base URL for the logging "endpoint".
+    const LOG_URL = 'http://127.0.0.1:8080/tiny.png';
+
+    /**
+     * The custom error handler for the window.onerror event.
+     * This function captures error details and sends them as a query string to a server.
+     * @param {string} message The error message.
+     * @param {string} source The URL of the script where the error occurred.
+     * @param {number} lineno The line number where the error occurred.
+     * @param {number} colno The column number where the error occurred.
+     * @param {Error} error The full Error object.
+     * @returns {boolean} Returns true to prevent the default browser error message.
+     */
+    window.onerror = function(message, source, lineno, colno, error) {
+      console.log('An error was caught by the window.onerror handler.');
+
+      // Capture and sanitize the error details for the query string.
+      const params = {
+        type: 'error', // Add a type to distinguish between error and timing logs
+        msg: encodeURIComponent(message),
+        src: encodeURIComponent(source),
+        ln: lineno,
+        col: colno,
+        // The error object might be large, so we only send the name and stack.
+        // It's crucial to URL-encode all string parts.
+        err_name: error ? encodeURIComponent(error.name) : '',
+        err_stack: error ? encodeURIComponent(error.stack) : ''
+      };
+
+      // Construct the query string from the parameters object.
+      const queryString = new URLSearchParams(params).toString();
+      const finalUrl = `${LOG_URL}?${queryString}`;
+
+      console.log('Sending error report to URL:', finalUrl);
+
+      // Create a new Image object and set its source to the constructed URL.
+      const logImg = new Image();
+      logImg.src = finalUrl;
+
+      // Returning true prevents the browser from showing its default error message.
+      return true;
+    };
+
+
+    // We will store the timing values here as they are captured.
+    const timingData = {};
+    const navigationTiming = performance.getEntriesByType('navigation')[0];
+    const startTime = navigationTiming.startTime;
+    
+    /**
+     * Logs the timing of a specific document event and sends the full report when ready.
+     * @param {string} eventName The name of the event being logged (e.g., 'DOMContentLoaded', 'load').
+     */
+    function logEventTiming(eventName) {
+      // Calculate the time elapsed from navigationStart to the current event.
+      // The time is rounded to the nearest integer for cleaner logs.
+      const elapsedTime = Math.round(performance.now() - startTime);
+
+      timingData[eventName] = elapsedTime;
+      
+      // We only send the log when both events have been captured.
+      if (timingData.DOMContentLoaded && timingData.load) {
+        const params = {
+          type: 'timing_report',
+          dom_content_loaded_time: timingData.DOMContentLoaded,
+          load_time: timingData.load
+        };
+
+        const queryString = new URLSearchParams(params).toString();
+        const finalUrl = `${LOG_URL}?${queryString}`;
+
+        console.log('Sending combined timing report to URL:', finalUrl);
+
+        // Create a new Image object to trigger the GET request.
+        const logImg = new Image();
+        logImg.src = finalUrl;
+      }
+    }
+
+
+    // Add an event listener for the 'DOMContentLoaded' event.
+    window.addEventListener('DOMContentLoaded', () => {
+      logEventTiming('DOMContentLoaded');
+    });
+
+    // Add an event listener for the 'load' event.
+    window.addEventListener('load', () => {
+      logEventTiming('load');
+    });
+
+
+    // This script block will intentionally cause a reference error to demonstrate the handler.
+    function intentionallyCauseError() {
+      // The `typo` variable is not defined, which will trigger an error.
+      typo;
+    }
+
+    // We use a small delay to ensure the event listeners are fully registered before the error.
+    setTimeout(intentionallyCauseError, 1000);
+  </script>
+
+</body>
+</html>

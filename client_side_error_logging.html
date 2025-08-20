@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Error Logging Example</title>
+</head>
+<body>
+
+  <h1>Client-Side Error Logging</h1>
+  <p>Open your browser's developer tools and navigate to the "Network" tab to see the HTTP request sent when an error occurs.</p>
+
+  <script>
+    /**
+     * @fileoverview This script sets up a global error handler to capture JavaScript errors.
+     * The handler formats the error details into a query string and sends them to a
+     * server via a GET request for a 1x1 pixel image. This is a common method for
+     * basic, client-side error reporting without a dedicated API endpoint.
+     */
+
+    // Define the base URL for the error logging "endpoint".
+    const LOG_URL = 'http://127.0.0.1:8080/tiny.png';
+
+    /**
+     * The custom error handler for the window.onerror event.
+     * This function captures error details and sends them as a query string to a server.
+     * @param {string} message The error message.
+     * @param {string} source The URL of the script where the error occurred.
+     * @param {number} lineno The line number where the error occurred.
+     * @param {number} colno The column number where the error occurred.
+     * @param {Error} error The full Error object.
+     * @returns {boolean} Returns true to prevent the default browser error message.
+     */
+    window.onerror = function(message, source, lineno, colno, error) {
+      console.log('An error was caught by the window.onerror handler.');
+
+      // Capture and sanitize the error details for the query string.
+      const params = {
+        msg: encodeURIComponent(message),
+        src: encodeURIComponent(source),
+        ln: lineno,
+        col: colno,
+        // The error object might be large, so we only send the name and stack.
+        // It's crucial to URL-encode all string parts.
+        err_name: error ? encodeURIComponent(error.name) : '',
+        err_stack: error ? encodeURIComponent(error.stack) : ''
+      };
+
+      // Construct the query string from the parameters object.
+      const queryString = new URLSearchParams(params).toString();
+      const finalUrl = `${LOG_URL}?${queryString}`;
+
+      console.log('Sending error report to URL:', finalUrl);
+
+      // Create a new Image object and set its source to the constructed URL.
+      // This action triggers a GET request to the server, logging the error.
+      const logImg = new Image();
+      logImg.src = finalUrl;
+
+      // Returning true prevents the browser from showing its default error message.
+      return true;
+    };
+
+
+    // This script block will intentionally cause a reference error to demonstrate the handler.
+    // The handler above will capture this error and send an HTTP request.
+    function intentionallyCauseError() {
+      // The `typo` variable is not defined, which will trigger an error.
+      typo;
+    }
+
+    // We use a small delay to ensure the event listener is fully registered.
+    // In a real application, the error would happen naturally.
+    setTimeout(intentionallyCauseError, 1000);
+
+  </script>
+
+</body>
+</html>

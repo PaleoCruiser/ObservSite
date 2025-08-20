@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Page Event Tracker</title>
+  <!-- Load Tailwind CSS from CDN for a clean, modern look -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+    }
+  </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+  <!-- Main container for the content, using flexbox for centering -->
+  <div class="bg-white p-8 rounded-2xl shadow-lg max-w-2xl w-full text-center m-4">
+    <h1 class="text-3xl font-bold text-gray-800 mb-4">Page Event Tracker Demo</h1>
+    <p class="text-gray-600 mb-6">
+      This page demonstrates how to track key HTML document lifecycle events and send the data to a server using a simple image URL.
+    </p>
+
+    <div class="bg-blue-50 border border-blue-200 text-blue-800 p-4 rounded-xl mb-6 text-left">
+      <h2 class="font-semibold text-lg mb-2">How it works:</h2>
+      <ul class="list-disc list-inside space-y-1">
+        <li>The script logs the `DOMContentLoaded` and `load` event timestamps.</li>
+        <li>When you close this tab or navigate away, the `beforeunload` event will fire.</li>
+        <li>The script will then build a query string with the collected event times and append it to an image URL.</li>
+        <li>Finally, it will log the complete URL to your browser's developer console.</li>
+      </ul>
+      <p class="mt-4 text-sm">
+        To see the result, open your browser's developer tools (F12 or Cmd + Opt + I) and look at the "Console" tab after you leave the page.
+      </p>
+    </div>
+
+    <p class="text-gray-500 text-sm">
+      This is a static demo. In a real application, the image request would be sent to a server that logs the data.
+    </p>
+  </div>
+
+  <script>
+    // A global object to store event timestamps.
+    window.pageEvents = {};
+
+    // Capture the starting time for relative time calculations.
+    const startTime = Date.now();
+
+    /**
+     * Encodes the collected event data into a URL-encoded query string.
+     * @returns {string} The URL-encoded query string.
+     */
+    function encodeEventsToQueryString() {
+      const params = new URLSearchParams();
+      for (const eventName in window.pageEvents) {
+        if (Object.hasOwnProperty.call(window.pageEvents, eventName)) {
+          params.append(eventName, window.pageEvents[eventName]);
+        }
+      }
+      return params.toString();
+    }
+
+    /**
+     * Records a page lifecycle event with a timestamp.
+     * @param {string} eventName The name of the event (e.g., 'DOMContentLoaded', 'load').
+     */
+    function trackPageEvent(eventName) {
+      // Store the elapsed time for both the console log and the query string.
+      const elapsedTime = Date.now() - startTime;
+      window.pageEvents[eventName] = elapsedTime;
+      console.log(`Event tracked: ${eventName} occurred at ${elapsedTime}ms after script start.`);
+    }
+
+    /**
+     * Appends the event data query string to an image URL and loads it,
+     * sending the data to the server for logging.
+     * @param {string} imageUrl The base URL of the image to which the data will be appended.
+     */
+    function sendDataWithImage(imageUrl) {
+      const queryString = encodeEventsToQueryString();
+      const finalUrl = `${imageUrl}?${queryString}`;
+
+      // Create a new Image object and set its source.
+      const img = new Image();
+      img.src = finalUrl;
+
+      // Log the URL to the console to demonstrate what would be sent to the server.
+      console.log("-----------------------------------------");
+      console.log("Data to be sent (via image URL):");
+      console.log(finalUrl);
+      console.log("-----------------------------------------");
+    }
+
+    // Attach event listeners to document lifecycle events.
+    document.addEventListener('DOMContentLoaded', () => {
+      trackPageEvent('DOMContentLoaded');
+    });
+
+    window.addEventListener('load', () => {
+      trackPageEvent('load');
+    });
+
+    // The 'beforeunload' event is the last chance to send data before the user leaves.
+    window.addEventListener('beforeunload', () => {
+      trackPageEvent('beforeunload');
+      // The image URL is a placeholder. In a real-world scenario, you would
+      // replace this with a real server endpoint that logs the request.
+      sendDataWithImage('http://127.0.0.1:8080/tiny.png');
+    });
+
+  </script>
+</body>
+</html>
