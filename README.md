@@ -8,6 +8,24 @@ All of them send the captured data by loading a png image where the query string
 ```
 http://127.0.0.1:8080/tiny.png?DOMContentLoaded=2&load=62&pageshow=63%3A%7B%22persisted%22%3Afalse%7D&visibilitychange=1111315%3A%7B%22state%22%3A%22visible%22%7D&beforeunload=1121176
 ```
+Based on the query string above, here are the key-value pairs:
+1. DOMContentLoaded: 2
+2. load: 62
+3. pageshow: 63:{"persisted":false}
+4. visibilitychange: 12762:{"state":"visible"}
+5. beforeunload: 31211
+
+The **load** event fires when the browser has finished loading all content on the page, including the HTML, CSS, images, and other resources. It signifies that the page is fully ready to be interacted with by a user.
+
+It's different from the **DOMContentLoaded** event, which only fires once the initial HTML document has been completely parsed and loaded. The load event is a much more comprehensive milestone, as it confirms that all assets are present.
+
+**pageshow** represents the elapsed time in milliseconds since the script began to run. This indicates that the pageshow event occurred just 63 milliseconds after the page started loading. This is very fast
+
+**visibilitychange** means this event  occurred 12,762 milliseconds (approximately 12 seconds) after the script loaded, indicating the moment the page became visible.
+
+**beforeunload** means this event occurred 31,211 milliseconds (approximately 30 seconds) after the script loaded, indicating when the user was about to leave the page.
+
+
 
 ## Instructions
 Open a web page in a browser.
